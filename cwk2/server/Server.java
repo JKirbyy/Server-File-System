@@ -2,28 +2,27 @@ import java.net.*;
 import java.io.*;
 import java.util.concurrent.*;
 
-public class Server 
-{
+public class Server {
 
-    public void runServer () throws IOException 
+    public void runServer () throws IOException
     {
     	System.out.println("Server running...");
         ServerSocket server = null;
         ExecutorService executor = null;
-        
-        try 
+
+        try
         {
             server = new ServerSocket(8888);
-        } 
-        
-        catch (IOException e) 
+        }
+
+        catch (IOException e)
         {
-            System.err.println("Could not listen on port: 8888.");
+            System.err.println("Could not listen on port: 2323.");
             System.exit(-1);
         }
 
-		executor = Executors.newCachedThreadPool(); //fixed here
-		
+		executor = Executors.newCachedThreadPool();
+
 		while( true )
 		{
 			//check if sync required
@@ -31,8 +30,8 @@ public class Server
 			executor.submit(new ClientHandler(client)); //check new port is assigned
 		}
     }
-    
-    public static void main(String[] args) 
+
+    public static void main(String[] args)
     {
     	Server serv = new Server();
         try

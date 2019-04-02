@@ -43,10 +43,8 @@ public class Client {
         // communication loop
         
         // read from server
-        try 
-        {
-          while ((fromServer = socketInput.readLine()) != null) 
-          {
+        try {
+          while ((fromServer = socketInput.readLine()) != null) {
 
               // echo server string
               System.out.println("Server: " + fromServer);
@@ -63,14 +61,12 @@ public class Client {
                   socketOutput.println(fromUser);
               }
           }
-          
           socketOutput.close();
           socketInput.close();
           stdIn.close();
           kkSocket.close();
         }
-        catch (IOException e) 
-        {
+        catch (IOException e) {
             System.err.println("I/O exception during execution\n");
             System.exit(1);
         }
