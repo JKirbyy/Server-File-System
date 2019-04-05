@@ -2,46 +2,45 @@ import java.net.*;
 import java.io.*;
 import java.util.concurrent.*;
 
-public class Server 
+public class Server
 {
 
-    public void runServer () throws IOException 
+    public void runServer () throws IOException
     {
-    	System.out.println("Server running...");
-        ServerSocket server = null;
-        ExecutorService executor = null;
-        
-        try 
-        {
-            server = new ServerSocket(8888);
-        } 
-        
-        catch (IOException e) 
-        {
-            System.err.println("Could not listen on port: 8888.");
-            System.exit(-1);
-        }
+      System.out.println("Server running...");
+      ServerSocket server = null;
+      ExecutorService executor = null;
+      try
+      {
+          server = new ServerSocket(8888);
+      }
 
-		executor = Executors.newCachedThreadPool(); //fixed here
-		
-		while( true )
+      catch (IOException e)
+      {
+          System.err.println("Could not listen on port: 8888.");
+          System.exit(-1);
+      }
+
+		  executor = Executors.newFixedThreadPool(10);
+
+		while(true)
 		{
-			//check if sync required
-			Socket client = server.accept();
-			executor.submit(new ClientHandler(client)); //check new port is assigned
+      Socket client = server.accept();
+			executor.submit(new ClientHandler(client));
 		}
-    }
-    
-    public static void main(String[] args) 
+
+  }
+
+    public static void main(String[] args)
     {
-    	Server serv = new Server();
-        try
-        {
-        	serv.runServer();
-        }
-        catch (IOException e)
-        {
-        	System.out.println("io");
-        }
+      Server serv = new Server();
+      try
+      {
+      	serv.runServer();
+      }
+      catch (IOException e)
+      {
+      	System.out.println("Error running server.");
+      }
     }
 }

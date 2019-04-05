@@ -2,15 +2,14 @@ import java.io.*;
 import java.net.*;
 import java.nio.file.Files;
 
-public class Client {
-	//change names
+public class Client
+{
     private Socket socket = null;
     private DataOutputStream socketOutput = null;
     private DataInputStream socketInput = null;
 
-    public void playKnockKnock(String[] commands)
+    public void runClient(String[] commands)
     {
-
         try
         {
             socket = new Socket( "localhost", 8888 );
@@ -20,157 +19,151 @@ public class Client {
 
         catch (UnknownHostException e)
         {
-            System.err.println("Don't know about host.\n");
+            System.err.println("Host not found.");
             System.exit(1);
         }
 
         catch (IOException e)
         {
-            System.err.println("Couldn't get I/O for the connection to host.\n");
+            System.err.println("Failed to connect to host.\n");
             System.exit(1);
         }
-          //Clean UP
-          try
+
+        try
+        {
+          if (commands[0].equals("list"))
           {
-            if (commands[0].equals("list"))
+            //send list command
+            byte[] list = commands[0].getBytes();
+            socketOutput.writeInt(list.length);
+            socketOutput.write(list);
+            socketOutput.flush();
+            //recieve list command
+            int listSize = socketInput.readInt();
+            for (int i = 0; i < listSize; i++)
             {
-                byte[] list = commands[0].getBytes();
-                System.out.println(" String Length: " + Integer.toString(list.length));
-                System.out.println(commands[0]);
-                socketOutput.writeInt(list.length);
-                socketOutput.write(list);
-                System.out.println("here");
-                socketOutput.flush();
-                int listSize = socketInput.readInt();
-                System.out.println("unblocked");
-                System.out.println("List size: " + Integer.toString(listSize));
-                for (int i = 0; i < listSize; i++)
-                {
-                  int fileNameSize = socketInput.readInt();
-                  byte[] byteFileName = new byte[fileNameSize];
-                  socketInput.read(byteFileName);
-                  String listItem = new String(byteFileName);
-                  System.out.println(listItem);
-                }
-                socketOutput.close();
-                System.exit(1);
+              int fileNameSize = socketInput.readInt();
+              byte[] byteFileName = new byte[fileNameSize];
+              socketInput.read(byteFileName);
+              String listItem = new String(byteFileName);
+              System.out.println(listItem);
             }
 
-            else if (commands[0].equals("put")) //error handling on commands input
+            socketOutput.flush();
+            System.exit(1);
+          }
+
+          else if (commands[0].equals("put"))
+          {
+            if (commands.length < 2) //checks if filename given
             {
+              System.out.println("Invalid command.");
+              System.exit(1);
+            }
+            try
+            {
+              //get working directory
               String dir = System.getProperty("user.dir");
               String fileLocation = dir.concat("/clientFiles");
               fileLocation = fileLocation.concat("/");
               fileLocation = fileLocation.concat(commands[1]);
-              System.out.println(fileLocation);
 
               byte[] put = commands[0].getBytes();
-              System.out.println(" String Length: " + Integer.toString(put.length));
-              System.out.println(commands[0]);
               socketOutput.writeInt(put.length);
               socketOutput.write(put);
 
+            //send file
               File file = new File(fileLocation);
-              byte[] byteFile = Files.readAllBytes(file.toPath());
-              byte[] name = commands[1].getBytes();
-              System.out.println("Name: " + commands[1]);
-              System.out.println("Length: " + Integer.toString(name.length));
-              socketOutput.writeInt(name.length);
-              socketOutput.write(name);
-              System.out.println("File Length: " + Integer.toString(byteFile.length));
-              socketOutput.writeInt(byteFile.length);
-              socketOutput.write(byteFile);
-              socketOutput.close();
-            }
-
-            else if (commands[0].equals("get"))
-            {
-              byte[] get = commands[0].getBytes();
-              System.out.println(" String Length: " + Integer.toString(get.length));
-              System.out.println(commands[0]);
-              socketOutput.writeInt(get.length);
-              socketOutput.write(get);
-              byte[] name = commands[1].getBytes();
-              socketOutput.writeInt(name.length);
-              socketOutput.write(name);
-              socketOutput.flush();
-
-              int fileSize = socketInput.readInt();
-              byte[] byteFile= new byte[fileSize];
-              socketInput.read(byteFile);
-              if (byteFile.length > 0)
+              if (file.exists() == false)
               {
-                System.out.println("file recieved");
+                System.out.println("File not found."); //exit proram if file not found locally
+                System.exit(1);
               }
 
-              String dir = System.getProperty("user.dir");
-              String fileLocation = dir.concat("/clientFiles");
-              fileLocation = fileLocation.concat("/");
-              fileLocation = fileLocation.concat(commands[1]);
-              System.out.println(fileLocation);
+              byte[] byteFile = Files.readAllBytes(file.toPath());
+              byte[] name = commands[1].getBytes();
+              socketOutput.writeInt(name.length);
+              socketOutput.write(name);
+              socketOutput.writeInt(byteFile.length);
+              socketOutput.write(byteFile);
+              socketOutput.flush();
+              System.out.println("Success.");
+            }
 
-              File newFile = new File(fileLocation); //check
-            	System.out.println(newFile.getName());
-          	  FileOutputStream fileOutput = new FileOutputStream(newFile, false); //false to overwrite
+            catch (FileNotFoundException f)
+            {
+              System.out.println("File not found.");
+            }
 
-          	  fileOutput.write(byteFile);
-          	  fileOutput.flush(); //check if required
-          	  fileOutput.close();
-              socketOutput.close();
+            catch (IOException e)
+            {
+              System.out.println("Server communication error.");
             }
           }
-          catch (IOException e)
+
+          else if (commands[0].equals("get"))
           {
-            System.out.println("File Not Found!"); //check
+            if (commands.length < 2)
+            {
+              System.out.println("Invalid command.");
+              System.exit(1);
+            }
+
+            byte[] get = commands[0].getBytes();
+            socketOutput.writeInt(get.length);
+            socketOutput.write(get);
+
+            byte[] name = commands[1].getBytes();
+            socketOutput.writeInt(name.length);
+            socketOutput.write(name);
+            socketOutput.flush();
+
+            int fileSize = socketInput.readInt();
+            if (fileSize == -999) //exits program if file not on server
+            {
+              System.out.println("File not found. Use list command to see available files.");
+              System.exit(1);
+            }
+
+            byte[] byteFile= new byte[fileSize];
+            socketInput.read(byteFile);
+            if (byteFile.length > 0)
+            {
+              System.out.println("File recieved");
+            }
+
+            String dir = System.getProperty("user.dir");
+            String fileLocation = dir.concat("/clientFiles");
+            fileLocation = fileLocation.concat("/");
+            fileLocation = fileLocation.concat(commands[1]);
+
+            File newFile = new File(fileLocation);
+          	System.out.println(newFile.getName());
+        	  FileOutputStream fileOutput = new FileOutputStream(newFile, false); //false to overwrite
+
+        	  fileOutput.write(byteFile);
+        	  fileOutput.flush();
+        	  fileOutput.close();
+            socketOutput.flush();
           }
 
-
-        //socketOutput.println(commands[0]); //assuming only one command
-
-          //socketOutput.close();
-          //socketInput.close();
-          //socket.close();
-        /*catch (IOException e)
-        {
-            System.err.println("I/O exception during execution\n");
-            System.exit(1);
-        }*/
-
-        /*String fromServer;
-        try
-        {
-          while ((fromServer = socketInput.readLine()) != null) //check for what has been returned //while(true)
+          else
           {
-            //fromServer = socketInput.readLine();
-            System.out.println(fromServer);
+            System.out.println("Invalid command.");
           }
           socketOutput.close();
           socketInput.close();
-          socket.close();
         }
-
         catch (IOException e)
         {
-          System.out.println(e.getMessage());
-          System.out.println("failed");
+          System.out.println("Server communication error.");
         }
-        return;*/
-
-        // chain a reader from the keyboard
-        //BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-        //String fromServer;
-        //String fromUser;
-
-        // communication loop
-
-        // read from server
     }
 
     public static void main(String[] args)
     {
-      Client kkc = new Client();
-      kkc.playKnockKnock(args);
+      Client cli = new Client();
+      cli.runClient(args);
       Runtime.getRuntime().exit(1);
     }
-
 }
